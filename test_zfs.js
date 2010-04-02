@@ -37,7 +37,7 @@ TestPlanner.prototype.track = function (fn) {
   };
 };
 
-var testPlan = 15;
+var testPlan = 18;
 var tp = new TestPlanner(testPlan);
 
 tp.teardown = function () {
@@ -112,8 +112,10 @@ function runTests() {
     }
     , function () {
       var snapshotName = zfsName + '@mysnapshot';
-      zfs.destroy(snapshotName, function (err, stdout, stderr) {
-        assertDatasetDoesNotExist(snapshotName, next);
+      assertDatasetExists(snapshotName, function () {
+        zfs.destroy(snapshotName, function (err, stdout, stderr) {
+          assertDatasetDoesNotExist(snapshotName, next);
+        });
       });
     }
 
@@ -131,7 +133,8 @@ function runTests() {
     }
 
     catch(e) {
-      puts("Error: " + e.msg);
+      puts("Error: " + e.toString());
+      puts(e.back);
       next();
     }
   }

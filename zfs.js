@@ -38,13 +38,10 @@ zpool.list = function () {
 };
 
 function parseTabSeperatedTable(data) {
-  var lines = data.split("\n");
- 
-  var i, l;
+  var i, l, lines = data.split("\n");
   for (i=0, l=lines.length; i < l; i++) {
     lines[i] = lines[i].split("\t");
   }
- 
   return lines;
 }
 
@@ -54,7 +51,6 @@ zfs.create = function (name, callback) {
   if (arguments.length != 2) {
     throw Error("Invalid arguments");
   }
-
   exec(ZFS_PATH + " create " + name, callback);
 }
 
@@ -62,7 +58,6 @@ zfs.snapshot = function (name, callback) {
   if (arguments.length != 2) {
     throw Error("Invalid arguments");
   }
-
   exec(ZFS_PATH + " snapshot " + name, callback);
 }
 
@@ -70,7 +65,6 @@ zfs.destroy = function (name, callback) {
   if (arguments.length != 2) {
     throw Error("Invalid arguments");
   }
-
   exec(ZFS_PATH + " destroy " + name, callback);
 }
 
@@ -78,7 +72,6 @@ zfs.destroyAll = function (name, callback) {
   if (arguments.length != 2) {
     throw Error("Invalid arguments");
   }
-
   exec(ZFS_PATH + " destroy -r " + name, callback);
 }
 
