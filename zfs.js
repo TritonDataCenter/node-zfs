@@ -14,8 +14,23 @@ zpool.listFields_ =
 // if zfs commands take longer than timeoutDuration it's an error
 timeoutDuration = exports.timeoutDuration = 5000;
 
-zpool.list = function (callback) {
-  execFile(ZPOOL_PATH, ['list', '-H'], { timeout: timeoutDuration },
+zpool.list = function () {
+  var pool, callback;
+  switch (arguments.length) {
+    case 1:
+      callback = arguments[0];
+      break;
+    case 2:
+      pool     = arguments[0];
+      callback = arguments[1];
+      break;
+    default:
+      throw Error('Invalid arguments');
+  }
+  var args = ['list', '-H'];
+  if (pool) args.push(pool);
+
+  execFile(ZPOOL_PATH, args, { timeout: timeoutDuration },
     function (err, stdout, stderr) {
       stdout = stdout.trim();
       if (err) {
