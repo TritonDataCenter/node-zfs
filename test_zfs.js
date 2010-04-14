@@ -22,10 +22,12 @@ TestPlanner = function (testCount) {
       puts("Tearing down...");
       self.teardown();
     }
-    assert.equal(testCount, self.count,
-                 'Number of tests run (' + self.count
-                 + ') didn\'t match number of tests planned (' + testCount + ')');
-    puts("All tests successful!");
+    if (testCount !== self.count) {
+      puts('Number of tests run (' + self.count
+         + ') didn\'t match number of tests planned (' + testCount + ')');
+    }
+    else
+      puts("All tests successful!");
   };
 
   process.addListener('exit', onExit);
