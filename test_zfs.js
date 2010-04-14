@@ -10,7 +10,11 @@ var sys = require('sys')
 TestPlanner = function (testCount) {
   this.count = 0;
   var self = this;
+  var aborted = false;
   var onExit = function (error) {
+    if (aborted) return;
+    aborted = true;
+
     if (error) { 
       puts(error.stack);
     }
@@ -59,12 +63,13 @@ var zpoolName = zfsName.split('/')[0];
 function preCheck() {
   // check zpool exists
   zpool.list(function (err, fields, list) {
-    ok(list);
+    ok(list, 'zpools list was empty or did not have a value');
     ok(list.length > 0, "zpool list is empty");
     ok(list.some(function (i) { return i[0] == zpoolName; }),
        "zpool doesn't exist");
 
     zfs.list(function (err, fields, list) {
+      ok(list, 'zfs list was empty or did not have a value');
       ok(list.length > 0, "zfs list is empty");
       ok(!list.some(function (i) { return i[0] == zfsName; }),
          "zfs dataset already exists");

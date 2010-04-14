@@ -14,31 +14,18 @@ zpool.listFields_ =
 // if zfs commands take longer than timeoutDuration it's an error
 timeoutDuration = exports.timeoutDuration = 5000;
 
-zpool.list = function () {
-  var dataset='', callback;
-  switch (arguments.length) {
-    case 1:
-      callback = arguments[0];
-      break;
-    case 2:
-      dataset = arguments[0];
-      callback = arguments[1];
-      break;
-    default:
-      throw Error('Invalid arguments');
-  }
-
-  execFile(ZPOOL_PATH, ['list', '-H', 'dataset'], { timeout: timeoutDuration },
+zpool.list = function (callback) {
+  execFile(ZPOOL_PATH, ['list', '-H'], { timeout: timeoutDuration },
     function (err, stdout, stderr) {
-    stdout = stdout.trim();
-    if (err) {
-      err.msg = stderr;
-      callback(err);
-      return;
-    }
-    lines = parseTabSeperatedTable(stdout);
-    callback(err, zpool.listFields_, lines);
-  });
+      stdout = stdout.trim();
+      if (err) {
+        err.msg = stderr;
+        callback(err);
+        return;
+      }
+      lines = parseTabSeperatedTable(stdout);
+      callback(err, zpool.listFields_, lines);
+    });
 };
 
 function parseTabSeperatedTable(data) {
@@ -84,7 +71,7 @@ zfs.listFields_ = [ 'name', 'used', 'available', 'referenced', 'mountpoint' ];
 // zfs.list(callback) - list all datasets
 // zfs.list(dataset, callback) -  list specific dataset
 zfs.list = function () {
-  var dataset='', options={}, callback;
+  var dataset, callback;
   switch (arguments.length) {
     case 1:
       callback = arguments[0];
@@ -96,8 +83,10 @@ zfs.list = function () {
     default:
       throw Error('Invalid arguments');
   }
+  var args = ['list', '-H', '-t', 'all'];
+  if (dataset) args.push(dataset);
 
-  execFile(ZFS_PATH, ['list', '-t', 'all', '-H', dataset],
+  execFile(ZFS_PATH, args,
     { timeout: timeoutDuration },
     function (err, stdout, stderr) {
       stdout = stdout.trim();
