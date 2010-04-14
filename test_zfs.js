@@ -12,12 +12,12 @@ TestPlanner = function (testCount) {
   var self = this;
   var aborted = false;
   var onExit = function (error) {
-    if (aborted) return;
-    aborted = true;
-
+//     if (aborted) return;
+//     aborted = true;
     if (error) { 
       puts(error.stack);
     }
+
     if (self.teardown) {
       puts("Tearing down...");
       self.teardown();
@@ -41,7 +41,7 @@ TestPlanner.prototype.track = function (fn) {
   };
 };
 
-var testPlan = 18;
+var testPlan = 33;
 var tp = new TestPlanner(testPlan);
 
 tp.teardown = function () {
@@ -123,11 +123,32 @@ function runTests() {
         });
       });
     }
-
-    
-//     , function () {}
-//     , function () {}
-    ];
+    , function () {
+      var snapshotName = 'thisprobably/doesnotexist';
+      assertDatasetDoesNotExist(snapshotName, function () {
+        zfs.list(snapshotName, function (err, fields, list) {
+          ok(err);
+          ok(err.msg.match(/does not exist/),
+             'Could list snashot that should not exist');
+          next();
+        });
+      });
+    }
+    , function () {
+      var snapshotName = 'thisprobably/doesnotexist';
+      assertDatasetDoesNotExist(snapshotName, function () {
+        zfs.destroy(snapshotName, function (err, stdout, stderr) {
+          puts("got here");
+          ok(err, "Expected an error deleting nonexistant dataset");
+          ok(typeof(err.code) === 'number');
+          ok(err.code !== 0, "Return code should be non-zero");
+          ok(stderr.match(/does not exist/),
+             'Error message did not indicate that dataset does not exist');
+          next();
+        });
+      });
+    }
+  ];
 
   function next() {
     if (tp >= tests.length) return;
