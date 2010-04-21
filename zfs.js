@@ -98,8 +98,37 @@ zfs.list = function () {
     default:
       throw Error('Invalid arguments');
   }
-  var args = ['list', '-H', '-t', 'all'];
+  var args = ['list', '-H'];
   if (dataset) args.push(dataset);
+
+  execFile(ZFS_PATH, args,
+    { timeout: timeoutDuration },
+    function (err, stdout, stderr) {
+      stdout = stdout.trim();
+      if (err) {
+        err.msg = stderr;
+        return callback(err);
+      }
+      lines = parseTabSeperatedTable(stdout);
+      callback(err, zfs.listFields_, lines);
+    });
+};
+
+zfs.list_snapshots = function () {
+  var snapshot, callback;
+  switch (arguments.length) {
+    case 1:
+      callback = arguments[0];
+      break;
+    case 2:
+      snapshot = arguments[0];
+      callback = arguments[1];
+      break;
+    default:
+      throw Error('Invalid arguments');
+  }
+  var args = ['list', '-H', '-t', 'snapshot'];
+  if (snapshot) args.push(snapshot);
 
   execFile(ZFS_PATH, args,
     { timeout: timeoutDuration },
