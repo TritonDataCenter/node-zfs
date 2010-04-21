@@ -114,18 +114,19 @@ function runTests() {
     , function () {
       var snapshotName = zfsName + '@mysnapshot';
       zfs.snapshot(snapshotName, function (err, stdout, stderr) {
-        assertDatasetExists(snapshotName, next);
+        assertDatasetExists(snapshotName, function () {
+          // check that the snapshot appears in the `list_snapshots` list
+          zfs.list_snapshots(function (err, fields, lines) {
+            ok(lines.some(function (i) { return i[0] === snapshotName; }),
+               "snapshot didn't appear in list of snapshots");
 
-        // check that the snapshot appears in the `list_snapshots` list
-        zfs.list_snapshots(function (err, fields, lines) {
-          ok(lines.some(function (i) { return i[0] === snapshotName; }),
-             "snapshot didn't appear in list of snapshots");
-        });
-
-        // check that the snapshot didn't appear in the `list` list
-        zfs.list(function (err, fields, lines) {
-          ok(!lines.every(function (i) { return i[0] !== snapshotName; }),
-             "snapshot appeared in `list` command");
+            // check that the snapshot didn't appear in the `list` list
+            zfs.list(function (err, fields, lines) {
+              ok(!lines.some(function (i) { return i[0] === snapshotName; }),
+                 "snapshot appeared in `list` command");
+              next();
+            });
+          });
         });
       });
     }
