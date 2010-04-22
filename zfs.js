@@ -67,6 +67,14 @@ zfs.snapshot = function (name, callback) {
   execFile(ZFS_PATH, ['snapshot', name], { timeout: timeoutDuration }, callback);
 }
 
+zfs.clone = function (snapshot, name, callback) {
+  if (arguments.length != 3) {
+    throw Error('Invalid arguments');
+  }
+  execFile(ZFS_PATH, ['clone', snapshot, name],
+           { timeout: timeoutDuration }, callback);
+}
+
 zfs.destroy = function (name, callback) {
   if (arguments.length != 2) {
     throw Error('Invalid arguments');

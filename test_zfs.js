@@ -19,15 +19,12 @@ TestPlanner = function (testCount) {
     }
 
     if (self.teardown) {
-      puts("Tearing down...");
       self.teardown();
     }
     if (testCount !== self.count) {
       puts('Number of tests run (' + self.count
          + ') didn\'t match number of tests planned (' + testCount + ')');
     }
-    else
-      puts("All tests successful!");
   };
 
   process.addListener('exit', onExit);
@@ -37,17 +34,16 @@ TestPlanner = function (testCount) {
 TestPlanner.prototype.track = function (fn) {
   var self = this;
   return function () {
-    puts("test-");
     self.count++;
     return fn.apply(undefined, arguments);
   };
 };
 
-var testPlan = 33;
+var testPlan = 50;
 var tp = new TestPlanner(testPlan);
 
 tp.teardown = function () {
-  puts("tearing down");
+  puts("Tearing down");
   zfs.destroyAll(zfsName, function () {
     puts("destroyed " + zfsName + inspect(arguments));
   });
@@ -83,6 +79,7 @@ function preCheck() {
 
 function assertDatasetExists(name, callback) {
   zfs.list(name, function (err, fields, list) {
+    ok(!err);
     ok(list.length > 0, "zfs list is empty");
     ok(list.some(function (i) { return i[0] == name; }),
        "zfs dataset doesn't exist");
@@ -105,12 +102,16 @@ assertDatasetDoesNotExist = tp.track(assertDatasetDoesNotExist);
 function runTests() {
   var tp = 0;
 
-  var tests =
-    [ function () {
-        zfs.create(zfsName, function () {
-          assertDatasetExists(zfsName, next);
-        });
-      }
+  var tests = [
+
+    // Test create dataset
+    function () {
+      zfs.create(zfsName, function () {
+        assertDatasetExists(zfsName, next);
+      });
+    }
+
+    // Test snapshots
     , function () {
       var snapshotName = zfsName + '@mysnapshot';
       zfs.snapshot(snapshotName, function (err, stdout, stderr) {
@@ -130,6 +131,27 @@ function runTests() {
         });
       });
     }
+
+    // Test cloning
+    , function () {
+      var snapshotName = zfsName + '@mysnapshot';
+      var cloneName = zpoolName + '/' + 'myclone';
+      zfs.clone(snapshotName, cloneName, function (err, stdout, stderr) {
+        assertDatasetExists(cloneName, next);
+      });
+    }
+
+    // Test destroying a clone
+    , function () {
+      var snapshotName = zpoolName + '/' + 'myclone';
+      assertDatasetExists(snapshotName, function () {
+        zfs.destroy(snapshotName, function (err, stdout, stderr) {
+          assertDatasetDoesNotExist(snapshotName, next);
+        });
+      });
+    }
+
+    // Test destroying a snapshot
     , function () {
       var snapshotName = zfsName + '@mysnapshot';
       assertDatasetExists(snapshotName, function () {
@@ -138,6 +160,8 @@ function runTests() {
         });
       });
     }
+
+    // Test List error
     , function () {
       var snapshotName = 'thisprobably/doesnotexist';
       assertDatasetDoesNotExist(snapshotName, function () {
@@ -149,11 +173,12 @@ function runTests() {
         });
       });
     }
+
+    // Test Delete error
     , function () {
       var snapshotName = 'thisprobably/doesnotexist';
       assertDatasetDoesNotExist(snapshotName, function () {
         zfs.destroy(snapshotName, function (err, stdout, stderr) {
-          puts("got here");
           ok(err, "Expected an error deleting nonexistant dataset");
           ok(typeof(err.code) === 'number');
           ok(err.code !== 0, "Return code should be non-zero");
@@ -168,14 +193,12 @@ function runTests() {
   function next() {
     if (tp >= tests.length) return;
 
-    puts("Starting new test");
+    puts(".");
     try {
       tests[tp++]();
     }
-
     catch(e) {
-      puts("Error: " + e.toString());
-      puts(e.back);
+      puts("**** Error: " + e.toString());
       next();
     }
   }
