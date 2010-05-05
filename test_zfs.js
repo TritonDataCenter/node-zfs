@@ -3,7 +3,8 @@
 var sys = require('sys')
   , assert = require('assert')
   , zfs = require('./zfs').zfs
-  , zpool = require('./zfs').zpool;
+  , zpool = require('./zfs').zpool
+  , fs = require('fs');
 
 // assert test is running as root
 
@@ -39,7 +40,7 @@ TestPlanner.prototype.track = function (fn) {
   };
 };
 
-var testPlan = 50;
+var testPlan = 52;
 var tp = new TestPlanner(testPlan);
 
 tp.teardown = function () {
@@ -54,9 +55,6 @@ equal = tp.track(assert.equal);
 
 var puts = sys.puts;
 var inspect = sys.inspect;
-
-var zfsName = process.argv[2] || 'node-zfs-test/test';
-var zpoolName = zfsName.split('/')[0];
 
 function preCheck() {
   // check zpool exists
@@ -99,22 +97,33 @@ function assertDatasetDoesNotExist(name, callback) {
 assertDatasetExists = tp.track(assertDatasetExists);
 assertDatasetDoesNotExist = tp.track(assertDatasetDoesNotExist);
 
+var zfsName = process.argv[2] || 'node-zfs-test/test';
+var zpoolName = zfsName.split('/')[0];
+var testFilename = '/' + zfsName + '/mytestfile';
+var testData = "Dancing is forbidden!";
+var testDataModified = "Chicken arise! Arise chicken! Arise!";
+
 function runTests() {
   var tp = 0;
 
   var tests = [
-
     // Test create dataset
     function () {
       zfs.create(zfsName, function () {
-        assertDatasetExists(zfsName, next);
+        assertDatasetExists(zfsName, function() {
+          fs.writeFile(testFilename, testData, function (error) {
+            if (error) throw error;
+            next();
+          });
+        });
       });
     }
 
     // Test snapshots
     , function () {
       var snapshotName = zfsName + '@mysnapshot';
-      zfs.snapshot(snapshotName, function (err, stdout, stderr) {
+      zfs.snapshot(snapshotName, function (error, stdout, stderr) {
+        if (error) throw error;
         assertDatasetExists(snapshotName, function () {
           // check that the snapshot appears in the `list_snapshots` list
           zfs.list_snapshots(function (err, fields, lines) {
@@ -130,6 +139,26 @@ function runTests() {
           });
         });
       });
+    }
+
+    // Test rolling back to a snapshot
+    , function () {
+      var snapshotName = zfsName + '@mysnapshot';
+      fs.writeFile(testFilename, testDataModified,
+        function (error) {
+          if (error) throw error;
+          fs.readFile(testFilename, function (err, str) {
+            if (err) throw err;
+            equal(str, testDataModified);
+            zfs.rollback(snapshotName, function (err, stdout, stderr) {
+              if (err) throw err;
+              fs.readFile(testFilename, function (err, str) {
+                equal(str, testData);
+                next();
+              });
+            });
+          });
+        });
     }
 
     // Test cloning

@@ -150,3 +150,10 @@ zfs.list_snapshots = function () {
       callback(err, zfs.listFields_, lines);
     });
 };
+
+zfs.rollback = function (name, callback) {
+  if (arguments.length != 2) {
+    throw Error('Invalid arguments');
+  }
+  execFile(ZFS_PATH, ['rollback', name], { timeout: timeoutDuration }, callback);
+}
