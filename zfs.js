@@ -2,6 +2,7 @@ var sys      = require('sys')
   , execFile = require('child_process').execFile;
 
 var puts = sys.puts;
+var inspect = sys.inspect;
 
 var ZPOOL_PATH = '/usr/sbin/zpool'
   , ZFS_PATH   = '/usr/sbin/zfs';
@@ -58,6 +59,55 @@ zfs.create = function (name, callback) {
     throw Error('Invalid arguments');
   }
   execFile(ZFS_PATH, ['create', name], { timeout: timeoutDuration }, callback);
+}
+
+zfs.set = function (name, properties, callback) {
+  if (arguments.length != 3) {
+    throw Error('Invalid arguments');
+  }
+
+  var keys = Object.keys(properties);
+
+  // loop over and set all the properties using chained callbacks
+  (function () {
+    var next = arguments.callee;
+    if (!keys.length) {
+      callback();
+      return;
+    }
+    var key = keys.pop();
+
+    execFile(ZFS_PATH, ['set', key + '=' + properties[key], name],
+      { timeout: timeoutDuration },
+      function (err, stdout, stderr) {
+        next(); // loop by calling enclosing function
+      });
+  })();
+}
+
+zfsGetRegex = new RegExp("^([^\t]+)\t([^\t]+)\t(.+)");
+zfs.get = function (name, propNames, callback) {
+  if (arguments.length != 3) {
+    throw Error("Invalid arguments");
+  }
+
+  execFile(ZFS_PATH,
+    ['get', '-H', '-o', 'source,property,value', propNames.join(','), name],
+    { timeout: timeoutDuration },
+    function (err, stdout, stderr) {
+      var properties = {};
+
+      // Populate the properties hash with regexp match groups from each line.
+      // Break on  first empty line
+      var lines = stdout.split("\n");
+      var i,l,m;
+      for (i=0,l=lines.length;i<l;i++) {
+        var m = zfsGetRegex.exec(lines[i]);
+        if (!m) continue;
+        properties[m[2]] = m[3];
+      }
+      callback(null, properties);
+    });
 }
 
 zfs.snapshot = function (name, callback) {

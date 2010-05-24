@@ -40,7 +40,7 @@ TestPlanner.prototype.track = function (fn) {
   };
 };
 
-var testPlan = 52;
+var testPlan = 55;
 var tp = new TestPlanner(testPlan);
 
 tp.teardown = function () {
@@ -97,7 +97,7 @@ function assertDatasetDoesNotExist(name, callback) {
 assertDatasetExists = tp.track(assertDatasetExists);
 assertDatasetDoesNotExist = tp.track(assertDatasetDoesNotExist);
 
-var zfsName = process.argv[2] || 'node-zfs-test/test';
+var zfsName = process.argv[2] || 'foobar/test';
 var zpoolName = zfsName.split('/')[0];
 var testFilename = '/' + zfsName + '/mytestfile';
 var testData = "Dancing is forbidden!";
@@ -116,6 +116,29 @@ function runTests() {
             next();
           });
         });
+      });
+    }
+
+    // Test set'ing a property
+    , function () {
+      var properties = { 'test:property1': "foo\tbix\tqube"
+                       , 'test:property2': 'baz'
+                       };
+      zfs.set(zfsName, properties,
+        function () {
+          next();
+        });
+    }
+
+    // Test get'ing a property
+    , function () {
+      zfs.get(zfsName, ['test:property1', 'test:property2'], function (err, properties) {
+        ok(properties, "Didn't get any properties back");
+        equal(properties['test:property1'], "foo\tbix\tqube",
+          "Property 'test:property1' should be 'foo'");
+        equal(properties['test:property2'], 'baz',
+          "Property 'test:property2' should be 'baz'");
+        next();
       });
     }
 
@@ -149,11 +172,11 @@ function runTests() {
           if (error) throw error;
           fs.readFile(testFilename, function (err, str) {
             if (err) throw err;
-            equal(str, testDataModified);
+            equal(str.toString(), testDataModified);
             zfs.rollback(snapshotName, function (err, stdout, stderr) {
               if (err) throw err;
               fs.readFile(testFilename, function (err, str) {
-                equal(str, testData);
+                equal(str.toString(), testData);
                 next();
               });
             });
