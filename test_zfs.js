@@ -1,265 +1,206 @@
 #!/usr/bin/env node
 
-var sys = require('sys')
-  , assert = require('assert')
-  , zfs = require('./zfs').zfs
-  , zpool = require('./zfs').zpool
-  , fs = require('fs');
+sys = require('sys');
+fs = require('fs');
 
-// assert test is running as root
+zfs = require('./zfs').zfs;
+zpool = require('./zfs').zpool;
+puts = sys.puts;
+inspect = sys.inspect;
 
-TestPlanner = function (testCount) {
-  this.count = 0;
-  var self = this;
-  var aborted = false;
-  var onExit = function (error) {
-//     if (aborted) return;
-//     aborted = true;
-    if (error) { 
-      puts(error.stack);
-    }
+TestSuite = require('./async-testing/async_testing').TestSuite;
 
-    if (self.teardown) {
-      self.teardown();
-    }
-    if (testCount !== self.count) {
-      puts('Number of tests run (' + self.count
-         + ') didn\'t match number of tests planned (' + testCount + ')');
-    }
-  };
-
-  process.addListener('exit', onExit);
-  process.addListener('uncaughtException', onExit);
-};
-
-TestPlanner.prototype.track = function (fn) {
-  var self = this;
-  return function () {
-    self.count++;
-    return fn.apply(undefined, arguments);
-  };
-};
-
-var testPlan = 55;
-var tp = new TestPlanner(testPlan);
-
-tp.teardown = function () {
-  puts("Tearing down");
-  zfs.destroyAll(zfsName, function () {
-    puts("destroyed " + zfsName + inspect(arguments));
-  });
-}
-
-ok = tp.track(assert.ok);
-equal = tp.track(assert.equal);
-
-var puts = sys.puts;
-var inspect = sys.inspect;
-
-function preCheck() {
-  // check zpool exists
-  zpool.list(function (err, fields, list) {
-    ok(list, 'zpools list was empty or did not have a value');
-    ok(list.length > 0, "zpool list is empty");
-    ok(list.some(function (i) { return i[0] == zpoolName; }),
-       "zpool doesn't exist");
-
-    zfs.list(function (err, fields, list) {
-      ok(list, 'zfs list was empty or did not have a value');
-      ok(list.length > 0, "zfs list is empty");
-      ok(!list.some(function (i) { return i[0] == zfsName; }),
-         "zfs dataset already exists");
-
-      runTests();
-    });
-  });
-}
-
-function assertDatasetExists(name, callback) {
+function assertDatasetExists(assert, name, callback) {
   zfs.list(name, function (err, fields, list) {
-    ok(!err);
-    ok(list.length > 0, "zfs list is empty");
-    ok(list.some(function (i) { return i[0] == name; }),
+    assert.ok(!err, "There was an error");
+    assert.ok(list, "got a list");
+    assert.ok(list.length > 0, "zfs list is empty");
+    assert.ok(list.some(function (i) { return i[0] === name; }),
        "zfs dataset doesn't exist");
     callback();
   });
 }
 
-function assertDatasetDoesNotExist(name, callback) {
+function assertDatasetDoesNotExist(assert, name, callback) {
   zfs.list(name, function (err, fields, list) {
-    ok(err);
-    ok(err.msg.match(/does not exist/));
-    ok(!list, "zfs list is empty");
+    assert.ok(err, "expected an error but didn't get one");
+    assert.ok(err.msg.match(/does not exist/), "received unexpected error message " + err.msg);
+    assert.ok(!list, "zfs list is empty");
     callback();
   });
 }
-
-assertDatasetExists = tp.track(assertDatasetExists);
-assertDatasetDoesNotExist = tp.track(assertDatasetDoesNotExist);
 
 var zfsName = process.argv[2] || 'foobar/test';
 var zpoolName = zfsName.split('/')[0];
 var testFilename = '/' + zfsName + '/mytestfile';
 var testData = "Dancing is forbidden!";
 var testDataModified = "Chicken arise! Arise chicken! Arise!";
+var suite = new TestSuite("node-zfs unit tests");
 
-function runTests() {
-  var tp = 0;
+var tests = [
+  { 'pre check':
+    function (assert, finished) {
+      zpool.list(function (err, fields, list) {
+        assert.ok(list, 'zpools list was empty or did not have a value');
+        assert.ok(list.length > 0, "zpool list is empty");
+        assert.ok(
+          list.some(function (i) { return i[0] == zpoolName; }),
+          "zpool doesn't exist");
 
-  var tests = [
-    // Test create dataset
-    function () {
+        zfs.list(function (err, fields, list) {
+          assert.ok(list, 'zfs list was empty or did not have a value');
+          assert.ok(list.length > 0, "zfs list is empty");
+          assert.ok(
+            !list.some(function (i) { return i[0] == zfsName; }),
+            "zfs dataset already exists");
+
+          finished();
+        });
+      });
+    }
+  }
+, { 'create a dataset':
+    function (assert, finished) {
       zfs.create(zfsName, function () {
-        assertDatasetExists(zfsName, function() {
+        assertDatasetExists(assert, zfsName, function() {
           fs.writeFile(testFilename, testData, function (error) {
             if (error) throw error;
-            next();
+            finished();
           });
         });
       });
     }
-
-    // Test set'ing a property
-    , function () {
+  }
+, { "set'ing a property":
+    function (assert, finished) {
       var properties = { 'test:property1': "foo\tbix\tqube"
                        , 'test:property2': 'baz'
                        };
-      zfs.set(zfsName, properties,
-        function () {
-          next();
+      zfs.set(zfsName, properties, finished);
+    }
+  }
+, { "get'ing a property":
+    function (assert, finished) {
+      zfs.get(zfsName,
+        ['test:property1', 'test:property2'],
+        function (err, properties) {
+          assert.ok(properties, "Didn't get any properties back");
+          assert.equal(properties['test:property1'], "foo\tbix\tqube",
+            "Property 'test:property1' should be 'foo'");
+          assert.equal(properties['test:property2'], 'baz',
+            "Property 'test:property2' should be 'baz'");
+          finished();
         });
     }
-
-    // Test get'ing a property
-    , function () {
-      zfs.get(zfsName, ['test:property1', 'test:property2'], function (err, properties) {
-        ok(properties, "Didn't get any properties back");
-        equal(properties['test:property1'], "foo\tbix\tqube",
-          "Property 'test:property1' should be 'foo'");
-        equal(properties['test:property2'], 'baz',
-          "Property 'test:property2' should be 'baz'");
-        next();
-      });
-    }
-
-    // Test snapshots
-    , function () {
+  }
+, { "snapshot a dataset":
+    function (assert, finished) {
       var snapshotName = zfsName + '@mysnapshot';
       zfs.snapshot(snapshotName, function (error, stdout, stderr) {
         if (error) throw error;
-        assertDatasetExists(snapshotName, function () {
+        assertDatasetExists(assert, snapshotName, function () {
           // check that the snapshot appears in the `list_snapshots` list
           zfs.list_snapshots(function (err, fields, lines) {
-            ok(lines.some(function (i) { return i[0] === snapshotName; }),
-               "snapshot didn't appear in list of snapshots");
+            assert.ok(
+              lines.some(function (i) { return i[0] === snapshotName; }),
+              "snapshot didn't appear in list of snapshots");
 
             // check that the snapshot didn't appear in the `list` list
             zfs.list(function (err, fields, lines) {
-              ok(!lines.some(function (i) { return i[0] === snapshotName; }),
-                 "snapshot appeared in `list` command");
-              next();
+              assert.ok(
+                !lines.some(function (i) { return i[0] === snapshotName; }),
+                "snapshot appeared in `list` command");
+              finished();
             });
           });
         });
       });
     }
-
-    // Test rolling back to a snapshot
-    , function () {
+  }
+, { 'rolling back a snapshot':
+    function (assert, finished) {
       var snapshotName = zfsName + '@mysnapshot';
       fs.writeFile(testFilename, testDataModified,
         function (error) {
           if (error) throw error;
           fs.readFile(testFilename, function (err, str) {
             if (err) throw err;
-            equal(str.toString(), testDataModified);
+            assert.equal(str.toString(), testDataModified);
             zfs.rollback(snapshotName, function (err, stdout, stderr) {
               if (err) throw err;
               fs.readFile(testFilename, function (err, str) {
-                equal(str.toString(), testData);
-                next();
+                assert.equal(str.toString(), testData);
+                finished();
               });
             });
           });
         });
     }
-
-    // Test cloning
-    , function () {
+  }
+, { 'clone a dataset':
+    function (assert, finished) {
       var snapshotName = zfsName + '@mysnapshot';
       var cloneName = zpoolName + '/' + 'myclone';
       zfs.clone(snapshotName, cloneName, function (err, stdout, stderr) {
-        assertDatasetExists(cloneName, next);
+        assertDatasetExists(assert, cloneName, finished);
       });
-    }
-
-    // Test destroying a clone
-    , function () {
-      var snapshotName = zpoolName + '/' + 'myclone';
-      assertDatasetExists(snapshotName, function () {
-        zfs.destroy(snapshotName, function (err, stdout, stderr) {
-          assertDatasetDoesNotExist(snapshotName, next);
-        });
-      });
-    }
-
-    // Test destroying a snapshot
-    , function () {
-      var snapshotName = zfsName + '@mysnapshot';
-      assertDatasetExists(snapshotName, function () {
-        zfs.destroy(snapshotName, function (err, stdout, stderr) {
-          assertDatasetDoesNotExist(snapshotName, next);
-        });
-      });
-    }
-
-    // Test List error
-    , function () {
-      var snapshotName = 'thisprobably/doesnotexist';
-      assertDatasetDoesNotExist(snapshotName, function () {
-        zfs.list(snapshotName, function (err, fields, list) {
-          ok(err);
-          ok(err.msg.match(/does not exist/),
-             'Could list snashot that should not exist');
-          next();
-        });
-      });
-    }
-
-    // Test Delete error
-    , function () {
-      var snapshotName = 'thisprobably/doesnotexist';
-      assertDatasetDoesNotExist(snapshotName, function () {
-        zfs.destroy(snapshotName, function (err, stdout, stderr) {
-          ok(err, "Expected an error deleting nonexistant dataset");
-          ok(typeof(err.code) === 'number');
-          ok(err.code !== 0, "Return code should be non-zero");
-          ok(stderr.match(/does not exist/),
-             'Error message did not indicate that dataset does not exist');
-          next();
-        });
-      });
-    }
-  ];
-
-  function next() {
-    if (tp >= tests.length) return;
-
-    puts(".");
-    try {
-      tests[tp++]();
-    }
-    catch(e) {
-      puts("**** Error: " + e.toString());
-      next();
     }
   }
+, { 'destroy a clone':
+    function (assert, finished) {
+      var snapshotName = zpoolName + '/' + 'myclone';
+      assertDatasetExists(assert, snapshotName, function () {
+        zfs.destroy(snapshotName, function (err, stdout, stderr) {
+          assertDatasetDoesNotExist(assert, snapshotName, finished);
+        });
+      });
+    }
+  }
+, { "destroying a snapshot":
+    function (assert, finished) {
+      var snapshotName = zfsName + '@mysnapshot';
+      assertDatasetExists(assert, snapshotName, function () {
+        zfs.destroy(snapshotName, function (err, stdout, stderr) {
+          assertDatasetDoesNotExist(assert, snapshotName, finished);
+        });
+      });
+    }
+  }
+, { "list errors":
+    function (assert, finished) {
+      var snapshotName = 'thisprobably/doesnotexist';
+      assertDatasetDoesNotExist(assert, snapshotName, function () {
+        zfs.list(snapshotName, function (err, fields, list) {
+          assert.ok(err);
+          assert.ok(err.msg.match(/does not exist/),
+            'Could list snashot that should not exist');
+          finished();
+        });
+      });
+    }
+  }
+, { "delete errors":
+    function (assert, finished) {
+      var snapshotName = 'thisprobably/doesnotexist';
+      assertDatasetDoesNotExist(assert, snapshotName, function () {
+        zfs.destroy(snapshotName, function (err, stdout, stderr) {
+          assert.ok(err, "Expected an error deleting nonexistant dataset");
+          assert.ok(typeof(err.code) === 'number');
+          assert.ok(err.code !== 0, "Return code should be non-zero");
+          assert.ok(stderr.match(/does not exist/),
+            'Error message did not indicate that dataset does not exist');
+          finished();
+        });
+      });
+    }
+  }
+];
 
-  next();
+var testCount = tests.length;
+
+// order matters in our tests
+for (i in tests) {
+  suite.addTests(tests[i]);
 }
 
-function test() {
-  preCheck();
-}
-
-test();
+suite.runTests();
