@@ -156,7 +156,7 @@ zfs.list = function () {
     default:
       throw Error('Invalid arguments');
   }
-  var args = ['list', '-H'];
+  var args = ['list', '-H', '-t', 'filesystem'];
   if (dataset) args.push(dataset);
 
   execFile(ZFS_PATH, args,

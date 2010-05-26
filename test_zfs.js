@@ -13,7 +13,7 @@ TestSuite = require('./async-testing/async_testing').TestSuite;
 function assertDatasetExists(assert, name, callback) {
   zfs.list(name, function (err, fields, list) {
     assert.ok(!err, "There was an error");
-    assert.ok(list, "got a list");
+    assert.ok(list, "Checking that we got a list of datasets.");
     assert.ok(list.length > 0, "zfs list is empty");
     assert.ok(list.some(function (i) { return i[0] === name; }),
        "zfs dataset doesn't exist");
@@ -29,6 +29,27 @@ function assertDatasetDoesNotExist(assert, name, callback) {
     callback();
   });
 }
+
+function assertSnapshotExists(assert, name, callback) {
+  zfs.list_snapshots(name, function (err, fields, list) {
+    assert.ok(!err, "There was an error");
+    assert.ok(list, "Checking that we got a list");
+    assert.ok(list.length > 0, "zfs list is empty");
+    assert.ok(list.some(function (i) { return i[0] === name; }),
+       "zfs dataset doesn't exist");
+    callback();
+  });
+}
+
+function assertSnapshotDoesNotExist(assert, name, callback) {
+  zfs.list_snapshots(name, function (err, fields, list) {
+    assert.ok(err, "expected an error but didn't get one");
+    assert.ok(err.msg.match(/does not exist/), "received unexpected error message " + err.msg);
+    assert.ok(!list, "zfs list is empty");
+    callback();
+  });
+}
+
 
 var zfsName = process.argv[2] || 'foobar/test';
 var zpoolName = zfsName.split('/')[0];
@@ -98,7 +119,7 @@ var tests = [
       var snapshotName = zfsName + '@mysnapshot';
       zfs.snapshot(snapshotName, function (error, stdout, stderr) {
         if (error) throw error;
-        assertDatasetExists(assert, snapshotName, function () {
+        assertSnapshotExists(assert, snapshotName, function () {
           // check that the snapshot appears in the `list_snapshots` list
           zfs.list_snapshots(function (err, fields, lines) {
             assert.ok(
@@ -148,10 +169,10 @@ var tests = [
   }
 , { 'destroy a clone':
     function (assert, finished) {
-      var snapshotName = zpoolName + '/' + 'myclone';
-      assertDatasetExists(assert, snapshotName, function () {
-        zfs.destroy(snapshotName, function (err, stdout, stderr) {
-          assertDatasetDoesNotExist(assert, snapshotName, finished);
+      var cloneName = zpoolName + '/' + 'myclone';
+      assertDatasetExists(assert, cloneName, function () {
+        zfs.destroy(cloneName, function (err, stdout, stderr) {
+          assertDatasetDoesNotExist(assert, cloneName, finished);
         });
       });
     }
@@ -159,18 +180,18 @@ var tests = [
 , { "destroying a snapshot":
     function (assert, finished) {
       var snapshotName = zfsName + '@mysnapshot';
-      assertDatasetExists(assert, snapshotName, function () {
+      assertSnapshotExists(assert, snapshotName, function () {
         zfs.destroy(snapshotName, function (err, stdout, stderr) {
-          assertDatasetDoesNotExist(assert, snapshotName, finished);
+          assertSnapshotDoesNotExist(assert, snapshotName, finished);
         });
       });
     }
   }
 , { "list errors":
     function (assert, finished) {
-      var snapshotName = 'thisprobably/doesnotexist';
-      assertDatasetDoesNotExist(assert, snapshotName, function () {
-        zfs.list(snapshotName, function (err, fields, list) {
+      var datasetName = 'thisprobably/doesnotexist';
+      assertDatasetDoesNotExist(assert, datasetName, function () {
+        zfs.list(datasetName, function (err, fields, list) {
           assert.ok(err);
           assert.ok(err.msg.match(/does not exist/),
             'Could list snashot that should not exist');
@@ -181,9 +202,9 @@ var tests = [
   }
 , { "delete errors":
     function (assert, finished) {
-      var snapshotName = 'thisprobably/doesnotexist';
-      assertDatasetDoesNotExist(assert, snapshotName, function () {
-        zfs.destroy(snapshotName, function (err, stdout, stderr) {
+      var datasetName = 'thisprobably/doesnotexist';
+      assertDatasetDoesNotExist(assert, datasetName, function () {
+        zfs.destroy(datasetName, function (err, stdout, stderr) {
           assert.ok(err, "Expected an error deleting nonexistant dataset");
           assert.ok(typeof(err.code) === 'number');
           assert.ok(err.code !== 0, "Return code should be non-zero");
