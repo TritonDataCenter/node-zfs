@@ -11,7 +11,11 @@ inspect = sys.inspect;
 TestSuite = require('./async-testing/async_testing').TestSuite;
 
 function assertDatasetExists(assert, name, callback) {
-  zfs.list(name, function (err, fields, list) {
+  var listFunc = name.indexOf('@') === -1
+                 ? zfs.list
+                 : zfs.list_snapshots;
+
+  listFunc(name, function (err, fields, list) {
     assert.ok(!err, "There was an error");
     assert.ok(list, "Checking that we got a list of datasets.");
     assert.ok(list.length > 0, "zfs list is empty");
@@ -22,34 +26,16 @@ function assertDatasetExists(assert, name, callback) {
 }
 
 function assertDatasetDoesNotExist(assert, name, callback) {
-  zfs.list(name, function (err, fields, list) {
+  var listFunc = name.indexOf('@') === -1
+                 ? zfs.list
+                 : zfs.list_snapshots;
+  listFunc(name, function (err, fields, list) {
     assert.ok(err, "expected an error but didn't get one");
     assert.ok(err.msg.match(/does not exist/), "received unexpected error message " + err.msg);
     assert.ok(!list, "zfs list is empty");
     callback();
   });
 }
-
-function assertSnapshotExists(assert, name, callback) {
-  zfs.list_snapshots(name, function (err, fields, list) {
-    assert.ok(!err, "There was an error");
-    assert.ok(list, "Checking that we got a list");
-    assert.ok(list.length > 0, "zfs list is empty");
-    assert.ok(list.some(function (i) { return i[0] === name; }),
-       "zfs dataset doesn't exist");
-    callback();
-  });
-}
-
-function assertSnapshotDoesNotExist(assert, name, callback) {
-  zfs.list_snapshots(name, function (err, fields, list) {
-    assert.ok(err, "expected an error but didn't get one");
-    assert.ok(err.msg.match(/does not exist/), "received unexpected error message " + err.msg);
-    assert.ok(!list, "zfs list is empty");
-    callback();
-  });
-}
-
 
 var zfsName = process.argv[2] || 'foobar/test';
 var zpoolName = zfsName.split('/')[0];
@@ -119,7 +105,7 @@ var tests = [
       var snapshotName = zfsName + '@mysnapshot';
       zfs.snapshot(snapshotName, function (error, stdout, stderr) {
         if (error) throw error;
-        assertSnapshotExists(assert, snapshotName, function () {
+        assertDatasetExists(assert, snapshotName, function () {
           // check that the snapshot appears in the `list_snapshots` list
           zfs.list_snapshots(function (err, fields, lines) {
             assert.ok(
@@ -180,9 +166,9 @@ var tests = [
 , { "destroying a snapshot":
     function (assert, finished) {
       var snapshotName = zfsName + '@mysnapshot';
-      assertSnapshotExists(assert, snapshotName, function () {
+      assertDatasetExists(assert, snapshotName, function () {
         zfs.destroy(snapshotName, function (err, stdout, stderr) {
-          assertSnapshotDoesNotExist(assert, snapshotName, finished);
+          assertDatasetDoesNotExist(assert, snapshotName, finished);
         });
       });
     }
