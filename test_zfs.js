@@ -2,6 +2,7 @@
 
 sys = require('sys');
 fs = require('fs');
+path = require('path');
 
 zfs = require('./zfs').zfs;
 zpool = require('./zfs').zpool;
@@ -30,7 +31,7 @@ function assertDatasetDoesNotExist(assert, name, callback) {
                  ? zfs.list
                  : zfs.list_snapshots;
   listFunc(name, function (err, fields, list) {
-    assert.ok(err, "expected an error but didn't get one");
+    assert.ok(err, "Should get an error message here");
     assert.ok(err.msg.match(/does not exist/), "received unexpected error message " + err.msg);
     assert.ok(!list, "zfs list is empty");
     callback();
@@ -124,6 +125,38 @@ var tests = [
       });
     }
   }
+, { 'send a snapshot to a file':
+    function(assert, finished) {
+      var snapshotName = zfsName + '@mysnapshot';
+      var snapshotFilename = '/tmp/node-zfs-test-snapshot.zfs';
+      zfs.send(snapshotName, snapshotFilename, function () {
+        path.exists(snapshotFilename, function (exists) {
+          assert.ok(exists, "Snapshot file should exist");
+          finished();
+        });
+      });
+    }
+  }
+, { 'receive a snapshot from a file':
+    function(assert, finished) {
+      var datasetName = zfsName + '/from_receive';
+      var snapshotFilename = '/tmp/node-zfs-test-snapshot.zfs';
+      zfs.receive(datasetName, snapshotFilename, function (err) {
+        if (err) throw err;
+        assertDatasetExists(assert, datasetName, function () {
+          path.exists('/'+datasetName+'/mytestfile', function (exists) {
+            assert.ok(exists, "My file should still exist");
+
+            fs.readFile('/'+datasetName+'/mytestfile', function (err, str) {
+              if (err) throw err;
+              assert.equal(str.toString(), testData);
+              finished();
+            });
+          });
+        });
+      });
+    }
+  }
 , { 'rolling back a snapshot':
     function (assert, finished) {
       var snapshotName = zfsName + '@mysnapshot';
@@ -170,6 +203,20 @@ var tests = [
         zfs.destroy(snapshotName, function (err, stdout, stderr) {
           assertDatasetDoesNotExist(assert, snapshotName, finished);
         });
+      });
+    }
+  }
+, { 'destroy a dataset':
+    function (assert, finished) {
+      zfs.destroyAll(zfsName, function (err, stdout, stderr) {
+        assertDatasetDoesNotExist(assert, zfsName, finished);
+      });
+    }
+  }
+, { 'destroy all datasets':
+    function (assert, finished) {
+      zfs.destroyAll(zfsName, function (err, stdout, stderr) {
+        assertDatasetDoesNotExist(assert, zfsName, finished);
       });
     }
   }

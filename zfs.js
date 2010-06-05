@@ -1,8 +1,10 @@
 var sys      = require('sys')
-  , execFile = require('child_process').execFile;
+  , cp       = require('child_process');
 
-var puts = sys.puts;
-var inspect = sys.inspect;
+var execFile = cp.execFile
+  , spawn    = cp.spawn
+  , puts     = sys.puts
+  , inspect  = sys.inspect;
 
 var ZPOOL_PATH = '/usr/sbin/zpool'
   , ZFS_PATH   = '/usr/sbin/zfs';
@@ -171,6 +173,46 @@ zfs.list = function () {
       callback(err, zfs.listFields_, lines);
     });
 };
+
+zfs.send = function (snapshot, filename, callback) {
+  fs.open(filename, 'w', 400, function (err, fd) {
+    if (err) {
+      callback(err);
+      return;
+    }
+    // set the child to write to STDOUT with `fd`
+    var child = spawn(ZFS_PATH, ['send', snapshot], undefined, [-1, fd]);
+    child.addListener('exit', function (code) {
+      if (code) {
+        callback("Return code was " + code);
+        return;
+      }
+      fs.close(fd, function () {
+        callback(null);
+      });
+    });
+  });
+}
+
+zfs.receive = function (name, filename, callback) {
+  fs.open(filename, 'r', 400, function (err, fd) {
+    if (err) {
+      callback(err);
+      return;
+    }
+    // set the child to read from STDIN with `fd`
+    var child = spawn(ZFS_PATH, ['receive', name], undefined, [fd]);
+    child.addListener('exit', function (code) {
+      if (code) {
+        callback("Return code was " + code);
+        return;
+      }
+      fs.close(fd, function () {
+        callback(null);
+      });
+    });
+  });
+}
 
 zfs.list_snapshots = function () {
   var snapshot, callback;
