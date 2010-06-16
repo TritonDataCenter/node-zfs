@@ -12,7 +12,7 @@ var ZPOOL_PATH = '/usr/sbin/zpool'
 exports.zpool = zpool = function () { }
 
 zpool.listFields_ =
-    [ 'name', 'size', 'used', 'available' , 'capacity', 'health', 'altroot' ];
+    [ 'name', 'size', 'used', 'avail' , 'cap', 'health', 'altroot' ];
 
 // if zfs commands take longer than timeoutDuration it's an error
 timeoutDuration = exports.timeoutDuration = 5000;
@@ -39,6 +39,10 @@ zpool.list = function () {
       if (err) {
         err.msg = stderr;
         callback(err);
+        return;
+      }
+      if (stdout == "no pools available\n") {
+        callback(err, zfs.listFields_, []);
         return;
       }
       lines = parseTabSeperatedTable(stdout);
@@ -141,7 +145,7 @@ zfs.destroyAll = function (name, callback) {
   execFile(ZFS_PATH, ['destroy', '-r',  name], { timeout: timeoutDuration }, callback);
 }
 
-zfs.listFields_ = [ 'name', 'used', 'available', 'referenced', 'mountpoint' ];
+zfs.listFields_ = [ 'name', 'used', 'avail', 'refer', 'mountpoint' ];
 
 // zfs.list(callback) - list all datasets
 // zfs.list(dataset, callback) -  list specific dataset
@@ -168,6 +172,10 @@ zfs.list = function () {
       if (err) {
         err.msg = stderr;
         return callback(err);
+      }
+      if (stdout == "no datasets available\n") {
+        callback(err, zfs.listFields_, []);
+        return;
       }
       lines = parseTabSeperatedTable(stdout);
       callback(err, zfs.listFields_, lines);
@@ -237,6 +245,10 @@ zfs.list_snapshots = function () {
       if (err) {
         err.msg = stderr;
         return callback(err);
+      }
+      if (stdout == "no datasets available\n") {
+        callback(err, zfs.listFields_, []);
+        return;
       }
       lines = parseTabSeperatedTable(stdout);
       callback(err, zfs.listFields_, lines);
