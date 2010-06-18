@@ -6,8 +6,9 @@ var execFile = cp.execFile
   , puts     = sys.puts
   , inspect  = sys.inspect;
 
-var ZPOOL_PATH = '/usr/sbin/zpool'
-  , ZFS_PATH   = '/usr/sbin/zfs';
+var ZPOOL_PATH = '/sbin/zpool'
+  , ZFS_PATH   = '/sbin/zfs'
+  , PFEXEC_PATH   = '/bin/pfexec';
 
 exports.zpool = zpool = function () { }
 
@@ -16,6 +17,12 @@ zpool.listFields_ =
 
 // if zfs commands take longer than timeoutDuration it's an error
 timeoutDuration = exports.timeoutDuration = 5000;
+
+function pfexec(binpath, args, opts, callback) {
+  args = args || [];
+  args.unshift(binpath);
+  execFile(PFEXEC_PATH, args, opts, callback);
+}
 
 zpool.list = function () {
   var pool, callback;
@@ -33,7 +40,7 @@ zpool.list = function () {
   var args = ['list', '-H'];
   if (pool) args.push(pool);
 
-  execFile(ZPOOL_PATH, args, { timeout: timeoutDuration },
+  pfexec(ZPOOL_PATH, args, { timeout: timeoutDuration },
     function (err, stdout, stderr) {
       stdout = stdout.trim();
       if (err) {
@@ -64,7 +71,7 @@ zfs.create = function (name, callback) {
   if (arguments.length != 2) {
     throw Error('Invalid arguments');
   }
-  execFile(ZFS_PATH, ['create', name], { timeout: timeoutDuration }, callback);
+  pfexec(ZFS_PATH, ['create', name], { timeout: timeoutDuration }, callback);
 }
 
 zfs.set = function (name, properties, callback) {
@@ -83,7 +90,7 @@ zfs.set = function (name, properties, callback) {
     }
     var key = keys.pop();
 
-    execFile(ZFS_PATH, ['set', key + '=' + properties[key], name],
+    pfexec(ZFS_PATH, ['set', key + '=' + properties[key], name],
       { timeout: timeoutDuration },
       function (err, stdout, stderr) {
         next(); // loop by calling enclosing function
@@ -97,7 +104,7 @@ zfs.get = function (name, propNames, callback) {
     throw Error("Invalid arguments");
   }
 
-  execFile(ZFS_PATH,
+  pfexec(ZFS_PATH,
     ['get', '-H', '-o', 'source,property,value', propNames.join(','), name],
     { timeout: timeoutDuration },
     function (err, stdout, stderr) {
@@ -120,14 +127,14 @@ zfs.snapshot = function (name, callback) {
   if (arguments.length != 2) {
     throw Error('Invalid arguments');
   }
-  execFile(ZFS_PATH, ['snapshot', name], { timeout: timeoutDuration }, callback);
+  pfexec(ZFS_PATH, ['snapshot', name], { timeout: timeoutDuration }, callback);
 }
 
 zfs.clone = function (snapshot, name, callback) {
   if (arguments.length != 3) {
     throw Error('Invalid arguments');
   }
-  execFile(ZFS_PATH, ['clone', snapshot, name],
+  pfexec(ZFS_PATH, ['clone', snapshot, name],
            { timeout: timeoutDuration }, callback);
 }
 
@@ -135,14 +142,14 @@ zfs.destroy = function (name, callback) {
   if (arguments.length != 2) {
     throw Error('Invalid arguments');
   }
-  execFile(ZFS_PATH, ['destroy', name], { timeout: timeoutDuration }, callback);
+  pfexec(ZFS_PATH, ['destroy', name], { timeout: timeoutDuration }, callback);
 }
 
 zfs.destroyAll = function (name, callback) {
   if (arguments.length != 2) {
     throw Error('Invalid arguments');
   }
-  execFile(ZFS_PATH, ['destroy', '-r',  name], { timeout: timeoutDuration }, callback);
+  pfexec(ZFS_PATH, ['destroy', '-r',  name], { timeout: timeoutDuration }, callback);
 }
 
 zfs.listFields_ = [ 'name', 'used', 'avail', 'refer', 'mountpoint' ];
@@ -165,7 +172,7 @@ zfs.list = function () {
   var args = ['list', '-H', '-t', 'filesystem'];
   if (dataset) args.push(dataset);
 
-  execFile(ZFS_PATH, args,
+  pfexec(ZFS_PATH, args,
     { timeout: timeoutDuration },
     function (err, stdout, stderr) {
       stdout = stdout.trim();
@@ -238,7 +245,7 @@ zfs.list_snapshots = function () {
   var args = ['list', '-H', '-t', 'snapshot'];
   if (snapshot) args.push(snapshot);
 
-  execFile(ZFS_PATH, args,
+  pfexec(ZFS_PATH, args,
     { timeout: timeoutDuration },
     function (err, stdout, stderr) {
       stdout = stdout.trim();
@@ -259,5 +266,5 @@ zfs.rollback = function (name, callback) {
   if (arguments.length != 2) {
     throw Error('Invalid arguments');
   }
-  execFile(ZFS_PATH, ['rollback', name], { timeout: timeoutDuration }, callback);
+  pfexec(ZFS_PATH, ['rollback', name], { timeout: timeoutDuration }, callback);
 }
