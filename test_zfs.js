@@ -38,7 +38,7 @@ function assertDatasetDoesNotExist(assert, name, callback) {
   });
 }
 
-var zfsName = process.argv[2] || 'foobar/test';
+var zfsName = process.argv[2] || 'nodezfstest/test';
 var zpoolName = zfsName.split('/')[0];
 var testFilename = '/' + zfsName + '/mytestfile';
 var testData = "Dancing is forbidden!";
