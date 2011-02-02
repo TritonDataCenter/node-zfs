@@ -4,12 +4,12 @@ sys = require('sys');
 fs = require('fs');
 path = require('path');
 
-zfs = require('./zfs').zfs;
-zpool = require('./zfs').zpool;
+zfs = require('../lib/zfs').zfs;
+zpool = require('../lib/zfs').zpool;
 puts = sys.puts;
 inspect = sys.inspect;
 
-TestSuite = require('./async-testing/async_testing').TestSuite;
+TestSuite = require('../lib/async_testing').TestSuite;
 
 function assertDatasetExists(assert, name, callback) {
   var listFunc = name.indexOf('@') === -1
