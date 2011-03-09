@@ -32,7 +32,7 @@ function assertDatasetDoesNotExist(assert, name, callback) {
                  : zfs.list_snapshots;
   listFunc(name, function (err, fields, list) {
     assert.ok(err, "Should get an error message here");
-    assert.ok(err.msg.match(/does not exist/), "received unexpected error message " + err.msg);
+    assert.ok(err.toString().match(/does not exist/), "received unexpected error message " + err.msg);
     assert.ok(!list, "zfs list is empty");
     callback();
   });
@@ -122,6 +122,22 @@ var tests = [
             });
           });
         });
+      });
+    }
+  }
+, { 'recursive list of datasets':
+    function (assert, finished) {
+      zfs.list(zfsName, { recursive: true, type: 'all' }, function (error, fields, list) {
+        console.dir(list);
+        assert.equal(list.length, 2, "The list should have 2 elements");
+        assert.ok(inList(zfsName, list), "Should have found our dataset");
+        assert.ok(inList(zfsName + '@mysnapshot', list), "Should have found child dataset");
+        finished();
+        function inList(needle, haystack) {
+          return haystack.some(function (i) {
+            return needle == i[0];
+          });
+        }
       });
     }
   }
@@ -226,7 +242,7 @@ var tests = [
       assertDatasetDoesNotExist(assert, datasetName, function () {
         zfs.list(datasetName, function (err, fields, list) {
           assert.ok(err);
-          assert.ok(err.msg.match(/does not exist/),
+          assert.ok(err.toString().match(/does not exist/),
             'Could list snashot that should not exist');
           finished();
         });
@@ -239,9 +255,7 @@ var tests = [
       assertDatasetDoesNotExist(assert, datasetName, function () {
         zfs.destroy(datasetName, function (err, stdout, stderr) {
           assert.ok(err, "Expected an error deleting nonexistant dataset");
-          assert.ok(typeof(err.code) === 'number');
-          assert.ok(err.code !== 0, "Return code should be non-zero");
-          assert.ok(stderr.match(/does not exist/),
+          assert.ok(err.toString().match(/does not exist/),
             'Error message did not indicate that dataset does not exist');
           finished();
         });
