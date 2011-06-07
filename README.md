@@ -68,6 +68,7 @@ AUTHOR
 ------
 
 Orlando Vazquez <orlando@joyent.com>
+Bill Pijewski <wdp@joyent.com>
 
 SEE ALSO
 --------
