@@ -91,6 +91,7 @@ var tests = [
     function (assert, finished) {
       zfs.get(zfsName,
         ['test:property1', 'test:property2'],
+        false,
         function (err, properties) {
           assert.ok(properties, "Didn't get any properties back");
           assert.equal(properties['test:property1'], "foo\tbix\tqube",
