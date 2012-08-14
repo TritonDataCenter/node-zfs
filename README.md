@@ -57,18 +57,21 @@ DESCRIPTION
 -----------
 
 The node-zfs library provies a thin, evented wrapper around common ZFS
-commands.
+commands.  It also contains functionality to automatically generate pool
+layouts based on a disk inventory.
 
 ENVIRONMENT
 -----------
 
-The library was developed on an OpenSolaris snv_111b system.
+The library was developed on an OpenSolaris snv_111b system and has
+subsequently been used on SmartOS.
 
 AUTHOR
 ------
 
 Orlando Vazquez <orlando@joyent.com>
 Bill Pijewski <wdp@joyent.com>
+Keith Wesolowski <keith.wesolowski@joyent.com>
 
 SEE ALSO
 --------

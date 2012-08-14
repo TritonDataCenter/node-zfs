@@ -1,12 +1,14 @@
-{ "name": "zfs",
-  "description": "Node library for interacting with ZFS utilities",
-  "version": "0.1.10",
-  "author": "Joyent (joyent.com)",
-  "main": "lib/zfs.js",
-  "directories": {
-    "lib": "lib"
-  },
-  "scripts": {
-    "test": "./run-tests"
-  }
+{
+	"name": "zfs",
+	"description": "Node library for interacting with ZFS utilities",
+	"version": "0.2.0",
+	"author": "Joyent (joyent.com)",
+	"private": true,
+	"main": "lib/zfs.js",
+	"devDependencies": {
+		"tap": "0.2"
+	},
+	"scripts": {
+		"test": "./node_modules/.bin/tap ./test"
+	}
 }

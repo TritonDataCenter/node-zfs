@@ -1,0 +1,22 @@
+{
+	"vdevs": [
+		{
+			"type": "mirror",
+			"devices": [
+				{
+					"name": "c0t5000C5004C8C74D3d0",
+					"vid": "HITACHI",
+					"pid": "HUC109060CSS600",
+					"size": "600127266816"
+				},
+				{
+					"name": "c0t5000C5004C8C4DA3d0",
+					"vid": "HITACHI",
+					"pid": "HUC109060CSS600",
+					"size": "600127266816"
+				}
+			]
+		}
+	],
+	"capacity": 600127266816
+}

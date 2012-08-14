@@ -1,0 +1,11 @@
+{
+	"vdevs": [
+		{
+			"name": "c1t0d0",
+			"vid": "VMware,",
+			"pid": "VMware Virtual S",
+			"size": "42949672960"
+		}
+	],
+	"capacity": "42949672960"
+}

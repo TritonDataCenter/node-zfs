@@ -1,0 +1,11 @@
+{
+	"vdevs": [
+		{
+			"name": "c0d0",
+			"vid": "CHEAP",
+			"pid": "SHITTIER",
+			"size": "240000000000"
+		}
+	],
+	"capacity": "240000000000"
+}
