@@ -306,7 +306,7 @@ check_layout(dl, t, name, layout)
 
 	if (layout)
 		cfname += '.' + layout;
-		
+
 	correct = JSON.parse(fs.readFileSync(cfname, 'utf8'));
 
 	t.test(name, function (st) {
