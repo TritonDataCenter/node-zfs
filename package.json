@@ -10,5 +10,6 @@
 	},
 	"scripts": {
 		"test": "./node_modules/.bin/tap ./test"
-	}
+	},
+        { "engines" : { "node" : ">=0.8" } }
 }
