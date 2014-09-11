@@ -8,13 +8,12 @@
     Copyright (c) 2014, Joyent, Inc.
 -->
 
-NAME
-----
+# NAME
+
 
 node-zfs - Node.js ZFS interface
 
-SYNOPSIS
---------
+# SYNOPSIS
 
     // list datasets
     zfs.list(function (err, fields, data) {
@@ -63,27 +62,25 @@ SYNOPSIS
         // ...
       });
 
-DESCRIPTION
------------
+# DESCRIPTION
 
 The node-zfs library provies a thin, evented wrapper around common ZFS
 commands.  It also contains functionality to automatically generate pool
 layouts based on a disk inventory.
 
-ENVIRONMENT
------------
+
+# ENVIRONMENT
 
 The library was developed on an OpenSolaris snv_111b system and has
 subsequently been used on SmartOS.
 
-AUTHOR
-------
+
+# AUTHOR
 
 Orlando Vazquez <orlando@joyent.com>
-Bill Pijewski <wdp@joyent.com>
 Keith Wesolowski <keith.wesolowski@joyent.com>
 
-SEE ALSO
---------
+
+# SEE ALSO
 
 zfs(1M), zpool(1M)
