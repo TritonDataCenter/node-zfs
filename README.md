@@ -8,10 +8,13 @@
     Copyright (c) 2014, Joyent, Inc.
 -->
 
-# NAME
+# node-zfs
 
+This repository is part of the Joyent SmartDataCenter project (SDC).  For
+contribution guidelines, issues, and general documentation, visit the main
+[SDC](http://github.com/joyent/sdc) project page.
 
-node-zfs - Node.js ZFS interface
+node-zfs is a Node.js interface to ZFS tools
 
 # SYNOPSIS
 
