@@ -6,10 +6,12 @@
 	"private": true,
 	"main": "lib/zfs.js",
 	"dependencies": {
-		"assert-plus": "^1.0.0"
+		"assert-plus": "^1.0.0",
+		"mock-fs": "^4.11.0"
 	},
 	"devDependencies": {
-		"tap": "0.2"
+		"deepcopy": "^2.0.0",
+		"tap": "^14.0.0"
 	},
 	"scripts": {
 		"test": "./node_modules/.bin/tap ./test"

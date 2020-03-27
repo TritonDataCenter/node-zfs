@@ -5,7 +5,7 @@
 -->
 
 <!--
-    Copyright (c) 2014, Joyent, Inc.
+    Copyright 2020 Joyent, Inc.
 -->
 
 # node-zfs
@@ -43,6 +43,11 @@ node-zfs is a Node.js interface to ZFS tools
       // ...
     });
 
+    // create a snapshot
+    zfs.snapshot('mydataset@backup', function (err) {
+      // ...
+    });
+
     // rollback a snapshot
     zfs.rollback('mydataset@backup', function (err) {
       // ...
@@ -65,6 +70,42 @@ node-zfs is a Node.js interface to ZFS tools
         // ...
       });
 
+    // rename a dataset (filesystem, volume, or snapshot)
+    zfs.rename('pool/ds1', 'pool/newname', function (err) {
+      // ...
+    });
+
+    // upgrade a filesystem to a new version
+    zfs.upgrade('mydataset', 5, function (err) {
+      // ...
+    });
+
+    // send a snapshot
+    zfs.send('mydataset@backup', '/some/file', function (err) {
+      // ...
+    });
+
+    // receive a snapshot
+    zfs.receive('mydataset@backup', '/some/file', function (err) {
+      // ...
+    });
+
+    // hold a snapshot (prevent from deletion)
+    zfs.hold('mydataset@backup', 'some_tag', function (err) {
+      // ...
+    });
+
+    // release hold from a snapshot
+    zfs.releaseHold('mydataset@backup', 'some_tag', function (err) {
+      // ...
+    });
+
+    // list the holds on a snapshot
+    zfs.releaseHold('mydataset@backup', 'some_tag', function (err, holds) {
+      // ...
+    });
+
+
 # DESCRIPTION
 
 The node-zfs library provies a thin, evented wrapper around common ZFS
@@ -75,8 +116,17 @@ layouts based on a disk inventory.
 # ENVIRONMENT
 
 The library was developed on an OpenSolaris snv_111b system and has
-subsequently been used on SmartOS.
+subsequently been used on SmartOS and Linux.
 
+# TESTING
+
+The [mock-zfs.js](lib/mock-zfs.js) file allows consumers of this module to mock
+it.  When used in conjection with
+[mock-fs](https://www.npmjs.com/package/mock-fs), ZFS filesystem operations
+(mount, unmount, clone, etc.) that would affect the visible filesystem
+namespace will be represented in the mocked directory hierarchy.  Other
+fs mockers may be used, so long as they cause `fs.stat().dev` to have the value
+8675309.
 
 # AUTHOR
 
