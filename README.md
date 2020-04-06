@@ -128,6 +128,40 @@ namespace will be represented in the mocked directory hierarchy.  Other
 fs mockers may be used, so long as they cause `fs.stat().dev` to have the value
 8675309.
 
+The following shows how to use mock-zfs.js:
+
+```node
+// Set up mockery before bringing in the zfs module.
+const mockery = require('mockery');
+mockery.enable({
+    warnOnReplace: true,
+    warnOnUnregistered: false,
+    useCleanCache: false
+});
+const mockzfs = require('../../node_modules/zfs/lib/mock-zfs.js');
+mockery.registerMock('zfs', mockzfs);
+
+// mockery set up, go on as normal.
+const zfsmod = require('zfs');
+const zfs = zfsmod.zfs;
+const zpool = zfsmod.zpool;
+const mockfs = require('mock-fs');
+
+// Set up a mock file system at the mountpoint for the pool's top-level dataset.
+// If this isn't done, then zpool and zfs operations will just skip the fs
+// updates.
+mockfs({'/mypool': {});
+zpool.create('mypool', null, function (err) {
+    if (!err) {
+        zfs.create('mypool/fs1', function (err2) {
+            ...
+        });
+    }
+    ...
+});
+
+```
+
 # AUTHOR
 
 Orlando Vazquez <orlando@joyent.com>
