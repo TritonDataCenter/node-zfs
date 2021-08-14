@@ -19,7 +19,8 @@ NPM		:= npm
 #
 JS_FILES	:= $(shell find lib test -name '*.js')
 JSL_CONF_NODE	 = tools/jsl.node.conf
-JSL_FILES_NODE   = $(JS_FILES)
+# The mock files were written with es6 features, which jsl doesn't understand.
+JSL_FILES_NODE  := $(shell find lib test -name '*.js' | grep -v mock)
 JSSTYLE_FILES	 = $(JS_FILES)
 
 include ./tools/mk/Makefile.defs

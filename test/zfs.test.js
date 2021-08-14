@@ -17,7 +17,7 @@ try {
 } catch (_) {
 	zutil = {
 		getZone: function () {
-			return 'other';
+			return ('other');
 		}
 	};
 }
