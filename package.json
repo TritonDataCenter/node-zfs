@@ -1,7 +1,7 @@
 {
 	"name": "zfs",
 	"description": "Node library for interacting with ZFS utilities",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"author": "Joyent (joyent.com)",
 	"private": true,
 	"main": "lib/zfs.js",
